@@ -49,24 +49,25 @@ function makeInput(model: Model<Api>, overrides: Partial<VisionWireInput> = {}):
 
 // ── api support ──────────────────────────────────────────────────────────
 
-test("isSupportedVisionApi: accepts the three supported APIs only", () => {
+test("isSupportedVisionApi: accepts the four supported APIs only", () => {
   for (const api of SUPPORTED_VISION_APIS) assert.equal(isSupportedVisionApi(api), true);
   assert.deepEqual([...SUPPORTED_VISION_APIS], [
     "openai-completions",
+    "openai-responses",
     "google-generative-ai",
     "anthropic-messages",
   ]);
-  for (const api of ["openai-responses", "google-vertex", "bedrock-converse-stream", "", undefined, null, 5]) {
+  for (const api of ["openai-codex-responses", "google-vertex", "bedrock-converse-stream", "", undefined, null, 5]) {
     assert.equal(isSupportedVisionApi(api), false, String(api));
   }
 });
 
 test("buildVisionRequest: unsupported api throws an actionable error (no HTTP status shape)", () => {
-  const model = makeModel("openai-responses");
+  const model = makeModel("bedrock-converse-stream");
   assert.throws(() => buildVisionRequest(makeInput(model)), UnsupportedVisionApiError);
   const msg = unsupportedApiMessage(model);
   assert.match(msg, /prov\/m-1/);
-  assert.match(msg, /"openai-responses"/);
+  assert.match(msg, /"bedrock-converse-stream"/);
   for (const api of SUPPORTED_VISION_APIS) assert.ok(msg.includes(api), api);
   // classifyError reads /returned (\d{3}):/ as an HTTP status — must not match.
   assert.doesNotMatch(msg, /returned \d{3}:/);
@@ -111,6 +112,42 @@ test("openai: no api key → no Authorization header; null provider headers are 
   assert.equal(req.headers["X-Org"], "acme");
   assert.equal("X-Unset" in req.headers, false);
   assert.equal(req.headers["Content-Type"], "application/vnd.test+json");
+});
+
+// ── openai-responses ─────────────────────────────────────────────────────
+
+const RESPONSES_USER_ITEM = {
+  role: "user",
+  content: [
+    { type: "input_image", image_url: "data:image/png;base64,QUJD" },
+    { type: "input_text", text: "describe" },
+  ],
+};
+
+test("responses: {baseUrl}/responses, Bearer auth, input_image + input_text parts, max_output_tokens", () => {
+  const req = buildVisionRequest(makeInput(makeModel("openai-responses", { baseUrl: "https://example.test/v1///" })));
+  assert.equal(req.url, "https://example.test/v1/responses");
+  assert.equal(req.headers.Authorization, "Bearer key-1");
+  assert.equal(req.headers["Content-Type"], "application/json");
+  assert.equal(req.body.model, "m-1");
+  assert.equal(req.body.max_output_tokens, 4096);
+  assert.deepEqual(req.body.input, [RESPONSES_USER_ITEM]);
+  assert.equal("messages" in req.body, false);
+  assert.equal("temperature" in req.body, false);
+});
+
+test("responses: system prompt → instructions, not an input item; reasoning is nested reasoning.effort only when model.reasoning and level != off", () => {
+  const withSys = buildVisionRequest(makeInput(makeModel("openai-responses"), { systemPrompt: "be terse" })).body;
+  assert.equal(withSys.instructions, "be terse");
+  assert.deepEqual(withSys.input, [RESPONSES_USER_ITEM]);
+
+  const on = buildVisionRequest(makeInput(makeModel("openai-responses", { reasoning: true }), { reasoning: "high" })).body;
+  assert.deepEqual(on.reasoning, { effort: "high" });
+  assert.equal("reasoning_effort" in on, false);
+  const off = buildVisionRequest(makeInput(makeModel("openai-responses", { reasoning: true }), { reasoning: "off" })).body;
+  assert.equal("reasoning" in off, false);
+  const notReasoning = buildVisionRequest(makeInput(makeModel("openai-responses"), { reasoning: "high" })).body;
+  assert.equal("reasoning" in notReasoning, false);
 });
 
 // ── google-generative-ai ─────────────────────────────────────────────────
@@ -205,6 +242,32 @@ test("extract openai: content, then reasoning_content, else undefined + finish_r
   const none = extractVisionText("openai-completions" as Api, { choices: [{ message: {}, finish_reason: "length" }] });
   assert.equal(none.text, undefined);
   assert.equal(none.reason, "length");
+});
+
+test("extract responses: joins output_text of message items, skipping reasoning and refusal parts; incomplete → reason", () => {
+  const api = "openai-responses" as Api;
+  const ok = extractVisionText(api, {
+    status: "completed",
+    output: [
+      { type: "reasoning", summary: [] },
+      {
+        type: "message",
+        content: [
+          { type: "output_text", text: "a" },
+          { type: "refusal", refusal: "no" },
+          { type: "output_text", text: "b" },
+        ],
+      },
+    ],
+  });
+  assert.equal(ok.text, "ab");
+  const incomplete = extractVisionText(api, {
+    status: "incomplete",
+    incomplete_details: { reason: "max_output_tokens" },
+    output: [{ type: "reasoning", summary: [] }],
+  });
+  assert.equal(incomplete.text, undefined);
+  assert.equal(incomplete.reason, "max_output_tokens");
 });
 
 test("extract google: joins visible parts, ignores thought parts, falls back to thoughts", () => {

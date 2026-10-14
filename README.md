@@ -100,14 +100,16 @@ The vision call speaks the wire format of the model's `api` in `models.json`:
 | `api` | Request | Auth header |
 |---|---|---|
 | `openai-completions` | `POST {baseUrl}/chat/completions` (`image_url` data URL) | `Authorization: Bearer` |
+| `openai-responses` | `POST {baseUrl}/responses` (`input_image` part; system prompt as `instructions`) — `baseUrl` carries the version, e.g. `…/v1` | `Authorization: Bearer` |
 | `google-generative-ai` | `POST {baseUrl}/models/{id}:generateContent` (`inlineData`) — `baseUrl` already carries the version, e.g. `…/v1beta` | `x-goog-api-key` |
 | `anthropic-messages` | `POST {baseUrl}/v1/messages` (base64 `image` block) — `baseUrl` has no `/v1` | `x-api-key` + `anthropic-version` |
 
-`reasoning-effort` is forwarded as `reasoning_effort` (OpenAI), `thinkingConfig.thinkingLevel`
+`reasoning-effort` is forwarded as `reasoning_effort` (chat/completions), `reasoning.effort`
+(Responses), `thinkingConfig.thinkingLevel`
 (Gemini, honouring the model's `thinkingLevelMap`) or an extended-thinking budget (Anthropic).
-`off` sends nothing. For Anthropic `temperature` is never sent (newer Claude models reject it).
+`off` sends nothing. `temperature` is never sent to Anthropic or Responses (newer Claude and reasoning models reject it).
 
-Any other `api` (e.g. `openai-responses`, `google-vertex`, `bedrock-converse-stream`) is rejected
+Any other `api` (e.g. `google-vertex`, `bedrock-converse-stream`) is rejected
 up front with an `unsupported_api` error naming the supported ones, instead of an opaque 404.
 `/vision model` only lists models on a supported API.
 

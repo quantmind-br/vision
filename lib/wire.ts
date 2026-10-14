@@ -14,6 +14,8 @@
  *   (e.g. `https://generativelanguage.googleapis.com/v1beta`).
  * - `anthropic-messages`: `baseUrl` has no version segment; the Anthropic SDK
  *   appends `/v1/messages`.
+ * - `openai-responses`: `baseUrl` carries the version segment (e.g.
+ *   `https://api.openai.com/v1`); `/responses` is appended.
  */
 import type { Api, Model, ProviderHeaders } from "@earendil-works/pi-ai";
 import type { ReasoningLevel } from "./config.ts";
@@ -22,6 +24,7 @@ import type { LoadedImage } from "./image.ts";
 /** APIs the vision call can speak. Anything else is rejected before the network. */
 export const SUPPORTED_VISION_APIS = [
   "openai-completions",
+  "openai-responses",
   "google-generative-ai",
   "anthropic-messages",
 ] as const;
@@ -137,6 +140,39 @@ function openAiRequest(input: VisionWireInput): VisionWireRequest {
   };
 }
 
+/**
+ * OpenAI Responses API: `{baseUrl}/responses` with `input` items. The image and
+ * prompt are `input_image` / `input_text` parts, the system prompt goes in
+ * `instructions`, and reasoning is the nested `reasoning.effort`.
+ */
+function responsesRequest(input: VisionWireInput): VisionWireRequest {
+  const { model, apiKey, image, prompt, systemPrompt, reasoning } = input;
+  const body: Record<string, unknown> = {
+    model: model.id,
+    input: [
+      {
+        role: "user",
+        content: [
+          { type: "input_image", image_url: `data:${image.mimeType};base64,${image.data}` },
+          { type: "input_text", text: prompt },
+        ],
+      },
+    ],
+    max_output_tokens: MAX_OUTPUT_TOKENS,
+  };
+  if (systemPrompt && systemPrompt.length > 0) body.instructions = systemPrompt;
+  // `temperature` is deliberately omitted: reasoning models reject it.
+  if (model.reasoning && reasoning !== "off") body.reasoning = { effort: reasoning };
+
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (apiKey) headers.Authorization = `Bearer ${apiKey}`;
+  return {
+    url: `${trimTrailingSlashes(model.baseUrl)}/responses`,
+    headers: withProviderHeaders(headers, input.providerHeaders),
+    body,
+  };
+}
+
 /** Gemini `thinkingLevel` for a pi level, honouring the model's own map. */
 function googleThinkingLevel(model: Model<Api>, level: ReasoningLevel): string | undefined {
   if (!model.reasoning || level === "off") return undefined;
@@ -219,6 +255,8 @@ export function buildVisionRequest(input: VisionWireInput): VisionWireRequest {
   switch (input.model.api) {
     case "openai-completions":
       return openAiRequest(input);
+    case "openai-responses":
+      return responsesRequest(input);
     case "google-generative-ai":
       return googleRequest(input);
     case "anthropic-messages":
@@ -235,6 +273,17 @@ function openAiText(json: Json): VisionWireText {
   const msg = choice?.message;
   const text = msg?.content || msg?.reasoning_content;
   return { text: text || undefined, reason: choice?.finish_reason };
+}
+
+function responsesText(json: Json): VisionWireText {
+  const output: Json[] = Array.isArray(json.output) ? json.output : [];
+  const text = output
+    .filter((item) => item.type === "message" && Array.isArray(item.content))
+    .flatMap((item) => item.content as Json[])
+    .filter((part) => part.type === "output_text" && typeof part.text === "string")
+    .map((part) => part.text as string)
+    .join("");
+  return { text: text || undefined, reason: json.incomplete_details?.reason };
 }
 
 function googleText(json: Json): VisionWireText {
@@ -268,6 +317,8 @@ export function extractVisionText(api: Api, json: unknown): VisionWireText {
       return googleText(body);
     case "anthropic-messages":
       return anthropicText(body);
+    case "openai-responses":
+      return responsesText(body);
     default:
       return openAiText(body);
   }
