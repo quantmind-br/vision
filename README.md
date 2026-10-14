@@ -6,7 +6,7 @@
 active primary model's input modalities** — so image analysis is never wasteful.
 
 Fork of [`@getpipher/vision`](https://github.com/getpipher/vision) whose delegated
-vision call also speaks the `google-generative-ai` and `anthropic-messages`
+vision call also speaks the `openai-responses`, `google-generative-ai` and `anthropic-messages`
 provider APIs — see [Supported provider APIs](#supported-provider-apis).
 
 ## Why
