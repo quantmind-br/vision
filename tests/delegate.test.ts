@@ -965,7 +965,7 @@ test("callVisionModel: unsupported api rejects before any network call", async (
   try {
     await assert.rejects(
       callVisionModel(
-        makeVisionModel({ api: "openai-responses" as Api }),
+        makeVisionModel({ api: "bedrock-converse-stream" as Api }),
         "k",
         undefined,
         { data: PNG_1x1_B64, mimeType: "image/png" },
@@ -973,7 +973,7 @@ test("callVisionModel: unsupported api rejects before any network call", async (
         undefined,
         "off",
       ),
-      /"openai-responses" API/,
+      /"bedrock-converse-stream" API/,
     );
     assert.equal(m.calls.length, 0, "no request was sent");
   } finally {
@@ -1022,16 +1022,40 @@ test("delegateToVisionModel: google-generative-ai primary works end to end", asy
   }
 });
 
+test("delegateToVisionModel: openai-responses primary works end to end", async () => {
+  const dir = tmpDir();
+  const m = mockFetch({
+    status: 200,
+    body: { output: [{ type: "message", content: [{ type: "output_text", text: "desc via responses" }] }] },
+  });
+  try {
+    const file = join(dir, "pixel.png");
+    writeFileSync(file, PNG_BYTES);
+    const ctx = makeCtx({
+      cwd: dir,
+      model: makeVisionModel({ api: "openai-responses" as Api, id: "gpt-x", baseUrl: "https://gw.test/v1" }),
+    });
+    const cfg = { ...DEFAULT_CONFIG, provider: "gw", model: "gpt-x" };
+    const r = await delegateToVisionModel(ctx, cfg, { image_path: file, prompt: "p", compress: false, reasoning: "off" }, undefined);
+    assert.equal(r.ok, true);
+    if (r.ok) assert.equal(r.text, "desc via responses");
+    assert.equal(m.calls[0]!.url, "https://gw.test/v1/responses");
+  } finally {
+    m.restore();
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test("delegateToVisionModel: unsupported api → unsupported_api pre-flight (no image read, no network, not audited)", async () => {
   const { dir, file, auditPath, cfg } = setupAuditTest();
   const m = mockFetch({ status: 200, body: {} });
   try {
-    const ctx = makeCtx({ cwd: dir, model: makeVisionModel({ api: "openai-responses" as Api }) });
+    const ctx = makeCtx({ cwd: dir, model: makeVisionModel({ api: "bedrock-converse-stream" as Api }) });
     const r = await delegateToVisionModel(ctx, cfg, { image_path: file, prompt: "p", compress: false, reasoning: "off" }, undefined);
     assert.equal(r.ok, false);
     if (!r.ok) {
       assert.equal(r.error.code, "unsupported_api");
-      assert.match(r.error.message, /openai-responses/);
+      assert.match(r.error.message, /bedrock-converse-stream/);
       assert.match(r.error.message, /google-generative-ai/);
     }
     assert.equal(m.calls.length, 0);
@@ -1045,7 +1069,7 @@ test("delegateToVisionModel: unsupported api → unsupported_api pre-flight (no 
 test("delegateToVisionModel: fallback on an unsupported api → unsupported_api with primary-error traceability", async () => {
   const dir = tmpDir();
   const primary = makeVisionModel();
-  const fallback = makeVisionModel({ api: "openai-responses" as Api, id: "fb-model", provider: "fb" });
+  const fallback = makeVisionModel({ api: "bedrock-converse-stream" as Api, id: "fb-model", provider: "fb" });
   const m = mockFetchSeq([{ status: 400, body: "bad request" }]);
   try {
     const file = join(dir, "pixel.png");
