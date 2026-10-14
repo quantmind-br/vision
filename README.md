@@ -1,9 +1,13 @@
-# @getpipher/vision
+# @quantmind-br/pi-vision
 
 > Capability-aware vision + paste extension for the [pi coding agent](https://github.com/earendil-works/pi-coding-agent).
 
-`@getpipher/vision` adds a `describe_image` tool to pi that is **aware of the
+`@quantmind-br/pi-vision` adds a `describe_image` tool to pi that is **aware of the
 active primary model's input modalities** — so image analysis is never wasteful.
+
+Fork of [`@getpipher/vision`](https://github.com/getpipher/vision) whose delegated
+vision call also speaks the `google-generative-ai` and `anthropic-messages`
+provider APIs — see [Supported provider APIs](#supported-provider-apis).
 
 ## Why
 
@@ -15,7 +19,7 @@ multimodal and can see images natively. That's a wasteful double-call: extra
 API roundtrip, extra tokens, and a hardcoded description that's worse than the
 model's own native image understanding.
 
-`@getpipher/vision` fixes this with **capability-aware delegation**:
+`@quantmind-br/pi-vision` fixes this with **capability-aware delegation**:
 
 - **Multimodal primary model** (e.g. `minimax-m3:cloud`, `qwen3.5:cloud`) → the
   image passes through to the model natively. **Zero delegation calls, zero
@@ -31,13 +35,14 @@ It just works under the hood.
 ## Install
 
 ```
-pi install npm:@getpipher/vision
+pi install npm:@quantmind-br/pi-vision
 ```
 
-`@getpipher/vision` **replaces** `pi-vision-tool` and `pi-paster`. Uninstall
-those first to avoid duplicate tools and double-attachment:
+`@quantmind-br/pi-vision` **replaces** `@getpipher/vision`, `pi-vision-tool` and
+`pi-paster`. Uninstall those first to avoid duplicate tools and double-attachment:
 
 ```
+pi uninstall npm:@getpipher/vision
 pi uninstall npm:pi-vision-tool
 pi uninstall npm:pi-paster
 ```
@@ -156,7 +161,7 @@ primaries.
 
 ## Image Preview (v0.3.3)
 
-`@getpipher/vision` can render images directly in the terminal — no external
+`@quantmind-br/pi-vision` can render images directly in the terminal — no external
 viewer needed.
 
 **Compose-time auto-preview.** As you type a message referencing an image
@@ -335,7 +340,7 @@ it's not overwritten.
 ### No config migration from pi-paster
 
 `pi-paster` is a paste-format extension — it has no configurable vision model
-(it doesn't delegate; it just marks + attaches). `@getpipher/vision`'s
+(it doesn't delegate; it just marks + attaches). `@quantmind-br/pi-vision`'s
 `markerStyle` (code/bold/plain) is a superset of pi-paster's fixed format, so
 there's nothing to migrate. Uninstall pi-paster, run `/vision`, done.
 
@@ -399,7 +404,8 @@ image path in your message and the model sees it natively.
 Inspired by [`pi-vision-tool`](https://github.com/xezpeleta/pi-vision-tool)
 (xezpeleta) and [`pi-paster`](https://github.com/beowulf11/pi-paster)
 (beowulf11) — both filled this gap first and motivated this clean-room
-reimplementation. Superseded by `@getpipher/vision`.
+reimplementation. Superseded by [`@getpipher/vision`](https://github.com/getpipher/vision)
+(RECTOR), of which this package is a fork.
 
 This package contains no code copied from either project. The behavior is
 specified independently and implemented fresh.

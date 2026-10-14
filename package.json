@@ -1,6 +1,6 @@
 {
-  "name": "@getpipher/vision",
-  "version": "0.5.3",
+  "name": "@quantmind-br/pi-vision",
+  "version": "0.6.0",
   "description": "Capability-aware vision + paste extension for the pi coding agent. Delegates image analysis to a vision model only when the active primary model is text-only; passes images through natively for multimodal models (zero delegation).",
   "keywords": [
     "pi-package",
@@ -12,13 +12,16 @@
   ],
   "license": "MIT",
   "author": "RECTOR <rector@rectorspace.com>",
-  "homepage": "https://github.com/getpipher/vision",
+  "homepage": "https://github.com/quantmind-br/vision",
   "repository": {
     "type": "git",
-    "url": "https://github.com/getpipher/vision.git"
+    "url": "https://github.com/quantmind-br/vision.git"
   },
   "bugs": {
-    "url": "https://github.com/getpipher/vision/issues"
+    "url": "https://github.com/quantmind-br/vision/issues"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "type": "module",
   "exports": {

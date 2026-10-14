@@ -1,9 +1,9 @@
 name: Release
 
-# Publishes @getpipher/vision to npm on tag push (v*).
-# Uses the getpipher org secret NPM_TOKEN (granular npm token, Read-and-write,
-# scoped to @getpipher, with "Bypass 2FA" — no OTP needed). Inherited by all
-# getpipher repos.  gh secret set NPM_TOKEN --org getpipher
+# Publishes the package named in package.json (@quantmind-br/pi-vision) to npm
+# on tag push (v*). Needs the repo secret NPM_TOKEN (granular npm token,
+# Read-and-write, scoped to @quantmind-br, with "Bypass 2FA" — no OTP needed):
+#   gh secret set NPM_TOKEN --repo quantmind-br/vision
 #
 # Idempotent: skips if the version is already on npm (safe to re-run).
 # Gates on typecheck + tests before publishing.

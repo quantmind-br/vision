@@ -1,10 +1,10 @@
 <!-- Satellite context file — extends the global hub (~/.claude/CLAUDE.md | ~/.pi/agent/AGENTS.md). Host-neutral; project-specific only. Do not duplicate hub standards here. -->
 
-# @getpipher/vision
+# @quantmind-br/pi-vision
 
-> Capability-aware vision + paste extension for the [pi coding agent](https://github.com/earendil-works/pi-coding-agent). npm: `@getpipher/vision`. Replaces `pi-vision-tool` + `pi-paster`.
+> Capability-aware vision + paste extension for the [pi coding agent](https://github.com/earendil-works/pi-coding-agent). npm: `@quantmind-br/pi-vision`. Fork of [`@getpipher/vision`](https://github.com/getpipher/vision) (`origin` = upstream, `fork` = quantmind-br/vision). Replaces `pi-vision-tool` + `pi-paster`.
 
-**Org context:** getpipher is the Pi coding-agent ecosystem. No GitLab mirror for getpipher.
+**Org context:** upstream getpipher is the Pi coding-agent ecosystem. This fork is published from quantmind-br; contribute fixes back to upstream via PRs.
 
 ## What
 
@@ -18,10 +18,10 @@ The capability check is automatic and silent — no config, no opt-in, no flag.
 ## Install
 
 ```
-pi install npm:@getpipher/vision
+pi install npm:@quantmind-br/pi-vision
 ```
 
-`@getpipher/vision` **replaces** `pi-vision-tool` and `pi-paster`. Uninstall those first to avoid duplicate tools and double-attachment.
+`@quantmind-br/pi-vision` **replaces** `@getpipher/vision`, `pi-vision-tool` and `pi-paster`. Uninstall those first to avoid duplicate tools and double-attachment.
 
 ## Structure
 
